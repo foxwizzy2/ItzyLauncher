@@ -5,10 +5,13 @@ public sealed class LauncherConfig
     public string LauncherName { get; set; } = "ItzyMU Launcher";
     public string ClientVersion { get; set; } = "1.0.0";
     public bool MaintenanceMode { get; set; }
+    public string GameExecutablePath { get; set; } = "";
+    public string GameDirectory { get; set; } = "";
 
     public LauncherTheme Theme { get; set; } = new();
     public List<LauncherButton> Buttons { get; set; } = new();
     public LauncherLinks Links { get; set; } = new();
+    public List<GameServer> Servers { get; set; } = new();
 }
 
 public sealed class LauncherTheme

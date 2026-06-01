@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using ItzyLauncher.Services;
 using ItzyLauncher.ViewModels;
+using ItzyLauncher.ViewModels.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -20,8 +21,16 @@ public partial class App : Application
                 services.AddSingleton<ConfigService>();
                 services.AddSingleton<NavigationService>();
                 services.AddSingleton<ThemeService>();
+                services.AddSingleton<GameProcessService>();
+                services.AddSingleton<GameUpdateService>();
+                services.AddSingleton<ServerStatusService>();
+                services.AddSingleton<AuthenticationService>();
 
                 services.AddSingleton<MainViewModel>();
+                services.AddSingleton<HomePageViewModel>();
+                services.AddSingleton<AccountPageViewModel>();
+                services.AddSingleton<SettingsPageViewModel>();
+                
                 services.AddSingleton<MainWindow>();
             })
             .Build();

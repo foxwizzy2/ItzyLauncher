@@ -1,16 +1,21 @@
-﻿using ItzyLauncher.ViewModels;
+﻿using Microsoft.Extensions.DependencyInjection;
+using ItzyLauncher.ViewModels;
 using ItzyLauncher.ViewModels.Pages;
 
 namespace ItzyLauncher.Services;
 
 public sealed class NavigationService
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, Func<PageViewModelBase>> _pages = new();
 
-    public NavigationService()
+    public NavigationService(IServiceProvider serviceProvider)
     {
-        Register("home", () => new HomePageViewModel());
-        Register("account", () => new AccountPageViewModel());
+        _serviceProvider = serviceProvider;
+
+        Register("home", () => _serviceProvider.GetRequiredService<HomePageViewModel>());
+        Register("account", () => _serviceProvider.GetRequiredService<AccountPageViewModel>());
+        Register("settings", () => _serviceProvider.GetRequiredService<SettingsPageViewModel>());
     }
 
     public void Register(string pageId, Func<PageViewModelBase> factory)
@@ -27,6 +32,6 @@ public sealed class NavigationService
             return factory();
         }
 
-        return new HomePageViewModel();
+        return _serviceProvider.GetRequiredService<HomePageViewModel>();
     }
 }

@@ -1,0 +1,87 @@
+{
+  "launcherName": "ItzyMU Launcher",
+  "clientVersion": "1.0.0",
+  "maintenanceMode": false,
+  "gameExecutablePath": "C:\\MU Online\\MU.exe",
+  "gameDirectory": "C:\\MU Online",
+  "theme": {
+    "accentColor": "#8B5CF6",
+    "backgroundImage": "",
+    "logo": ""
+  },
+  "buttons": [
+    {
+      "id": "home",
+      "text": "Home",
+      "icon": "🏠",
+      "enabled": true,
+      "action": "open_page",
+      "value": "home",
+      "order": 1
+    },
+    {
+      "id": "account",
+      "text": "Account",
+      "icon": "👤",
+      "enabled": true,
+      "action": "open_page",
+      "value": "account",
+      "order": 2
+    },
+    {
+      "id": "settings",
+      "text": "Settings",
+      "icon": "⚙️",
+      "enabled": true,
+      "action": "open_page",
+      "value": "settings",
+      "order": 3
+    },
+    {
+      "id": "website",
+      "text": "Website",
+      "icon": "🌐",
+      "enabled": true,
+      "action": "open_url",
+      "value": "https://itzymu.com",
+      "order": 4
+    }
+  ],
+  "links": {
+    "website": "https://itzymu.com",
+    "discord": "https://discord.gg/itzymu",
+    "register": "https://itzymu.com/register"
+  },
+  "servers": [
+    {
+      "id": "us-east",
+      "name": "US East",
+      "host": "us-east.itzymu.com",
+      "port": 55901,
+      "isOnline": true,
+      "onlineCount": 1542,
+      "region": "North America",
+      "order": 1
+    },
+    {
+      "id": "eu-west",
+      "name": "EU West",
+      "host": "eu-west.itzymu.com",
+      "port": 55901,
+      "isOnline": true,
+      "onlineCount": 1230,
+      "region": "Europe",
+      "order": 2
+    },
+    {
+      "id": "asia-east",
+      "name": "Asia East",
+      "host": "asia-east.itzymu.com",
+      "port": 55901,
+      "isOnline": false,
+      "onlineCount": 0,
+      "region": "Asia",
+      "order": 3
+    }
+  ]
+}

@@ -11,6 +11,10 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ConfigService _configService;
     private readonly NavigationService _navigationService;
     private readonly ThemeService _themeService;
+    private readonly GameProcessService _gameProcessService;
+    private readonly GameUpdateService _gameUpdateService;
+    private readonly ServerStatusService _serverStatusService;
+    private readonly AuthenticationService _authenticationService;
 
     private string _launcherTitle = "Loading...";
     private string _clientVersion = "";
@@ -19,6 +23,15 @@ public sealed class MainViewModel : ViewModelBase
     private string _logo = "";
     private bool _maintenanceMode;
     private PageViewModelBase? _currentPage;
+    private string _serverStatus = "Loading...";
+    private string _playerCount = "0";
+    private bool _isGameRunning;
+    private string _launchButtonText = "PLAY";
+    private double _updateProgress;
+    private bool _showUpdateProgress;
+    private string _updateStatus = "";
+    private GameServer? _selectedServer;
+    private LauncherConfig? _config;
 
     public string LauncherTitle
     {
@@ -62,16 +75,94 @@ public sealed class MainViewModel : ViewModelBase
         set => SetProperty(ref _currentPage, value);
     }
 
+    public string ServerStatus
+    {
+        get => _serverStatus;
+        set => SetProperty(ref _serverStatus, value);
+    }
+
+    public string PlayerCount
+    {
+        get => _playerCount;
+        set => SetProperty(ref _playerCount, value);
+    }
+
+    public bool IsGameRunning
+    {
+        get => _isGameRunning;
+        set => SetProperty(ref _isGameRunning, value);
+    }
+
+    public string LaunchButtonText
+    {
+        get => _launchButtonText;
+        set => SetProperty(ref _launchButtonText, value);
+    }
+
+    public double UpdateProgress
+    {
+        get => _updateProgress;
+        set => SetProperty(ref _updateProgress, value);
+    }
+
+    public bool ShowUpdateProgress
+    {
+        get => _showUpdateProgress;
+        set => SetProperty(ref _showUpdateProgress, value);
+    }
+
+    public string UpdateStatus
+    {
+        get => _updateStatus;
+        set => SetProperty(ref _updateStatus, value);
+    }
+
+    public GameServer? SelectedServer
+    {
+        get => _selectedServer;
+        set => SetProperty(ref _selectedServer, value);
+    }
+
     public ObservableCollection<MenuItemModel> MenuItems { get; } = new();
+    public ObservableCollection<GameServer> Servers { get; } = new();
+
+    public RelayCommand LaunchGameCommand { get; }
+    public RelayCommand CheckUpdatesCommand { get; }
+    public RelayCommand SelectServerCommand { get; }
 
     public MainViewModel(
         ConfigService configService,
         NavigationService navigationService,
-        ThemeService themeService)
+        ThemeService themeService,
+        GameProcessService gameProcessService,
+        GameUpdateService gameUpdateService,
+        ServerStatusService serverStatusService,
+        AuthenticationService authenticationService)
     {
         _configService = configService;
         _navigationService = navigationService;
         _themeService = themeService;
+        _gameProcessService = gameProcessService;
+        _gameUpdateService = gameUpdateService;
+        _serverStatusService = serverStatusService;
+        _authenticationService = authenticationService;
+
+        LaunchGameCommand = new RelayCommand(_ => LaunchGame());
+        CheckUpdatesCommand = new RelayCommand(_ => CheckUpdates());
+        SelectServerCommand = new RelayCommand(obj => SelectServer(obj));
+
+        _gameProcessService.GameStarted += (s, e) => IsGameRunning = true;
+        _gameProcessService.GameExited += (s, e) => { IsGameRunning = false; LaunchButtonText = "PLAY"; };
+
+        _gameUpdateService.ProgressChanged += (s, e) =>
+        {
+            UpdateProgress = (e.BytesDownloaded / (double)e.TotalBytes) * 100;
+        };
+
+        _gameUpdateService.StatusChanged += (s, status) =>
+        {
+            UpdateStatus = status;
+        };
 
         CurrentPage = _navigationService.Navigate("home");
 
@@ -80,19 +171,20 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
-        LauncherConfig config = await _configService.LoadAsync();
+        _config = await _configService.LoadAsync();
 
-        LauncherTitle = config.LauncherName;
-        ClientVersion = config.ClientVersion;
-        MaintenanceMode = config.MaintenanceMode;
+        LauncherTitle = _config.LauncherName;
+        ClientVersion = _config.ClientVersion;
+        MaintenanceMode = _config.MaintenanceMode;
 
-        _themeService.ApplyTheme(config.Theme);
+        _themeService.ApplyTheme(_config.Theme);
 
-        AccentColor = config.Theme.AccentColor;
-        BackgroundImage = config.Theme.BackgroundImage;
-        Logo = config.Theme.Logo;
+        AccentColor = _config.Theme.AccentColor;
+        BackgroundImage = _config.Theme.BackgroundImage;
+        Logo = _config.Theme.Logo;
 
-        BuildMenu(config);
+        BuildMenu(_config);
+        await LoadServersAsync(_config);
     }
 
     private void BuildMenu(LauncherConfig config)
@@ -115,6 +207,52 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    private async Task LoadServersAsync(LauncherConfig config)
+    {
+        Servers.Clear();
+
+        foreach (GameServer server in config.Servers.OrderBy(x => x.Order))
+        {
+            Servers.Add(server);
+        }
+
+        if (Servers.Count > 0)
+        {
+            SelectedServer = Servers[0];
+        }
+
+        // Refresh server statuses
+        _ = RefreshServerStatusAsync();
+    }
+
+    private async Task RefreshServerStatusAsync()
+    {
+        List<GameServer> updatedServers = await _serverStatusService.FetchServerStatusAsync(Servers.ToList());
+
+        for (int i = 0; i < updatedServers.Count; i++)
+        {
+            if (i < Servers.Count)
+            {
+                Servers[i] = updatedServers[i];
+            }
+        }
+
+        if (SelectedServer != null && updatedServers.FirstOrDefault(x => x.Id == SelectedServer.Id) is GameServer updated)
+        {
+            SelectedServer = updated;
+            UpdateServerStatus();
+        }
+    }
+
+    private void UpdateServerStatus()
+    {
+        if (SelectedServer != null)
+        {
+            ServerStatus = SelectedServer.IsOnline ? "ONLINE" : "OFFLINE";
+            PlayerCount = $"Players: {SelectedServer.OnlineCount}";
+        }
+    }
+
     private void ExecuteButton(LauncherButton button)
     {
         switch (button.Action.ToLower())
@@ -124,7 +262,7 @@ public sealed class MainViewModel : ViewModelBase
                 break;
 
             case "start_game":
-                StartGame();
+                LaunchGame();
                 break;
 
             case "open_page":
@@ -132,7 +270,7 @@ public sealed class MainViewModel : ViewModelBase
                 break;
 
             case "check_update":
-                CheckUpdate();
+                CheckUpdates();
                 break;
         }
     }
@@ -151,13 +289,53 @@ public sealed class MainViewModel : ViewModelBase
         });
     }
 
-    private void StartGame()
+    private async void LaunchGame()
     {
-        Debug.WriteLine("Start Game");
+        if (IsGameRunning)
+        {
+            _gameProcessService.KillGame();
+            LaunchButtonText = "PLAY";
+            return;
+        }
+
+        if (_config?.GameExecutablePath == null || string.IsNullOrEmpty(_config.GameExecutablePath))
+        {
+            UpdateStatus = "Game path not configured";
+            return;
+        }
+
+        string gameParams = $"--server {SelectedServer?.Host ?? "localhost"} --port {SelectedServer?.Port ?? 55901}";
+
+        bool success = await _gameProcessService.LaunchGameAsync(_config.GameExecutablePath, gameParams);
+
+        if (success)
+        {
+            LaunchButtonText = "STOP";
+        }
+        else
+        {
+            UpdateStatus = "Failed to launch game";
+        }
     }
 
-    private void CheckUpdate()
+    private async void CheckUpdates()
     {
-        Debug.WriteLine("Check Update");
+        ShowUpdateProgress = true;
+        UpdateStatus = "Checking for updates...";
+
+        // Mock update check - replace with real server check
+        await Task.Delay(500);
+
+        UpdateStatus = "Your game is up to date";
+        ShowUpdateProgress = false;
+    }
+
+    private void SelectServer(object? obj)
+    {
+        if (obj is GameServer server)
+        {
+            SelectedServer = server;
+            UpdateServerStatus();
+        }
     }
 }
