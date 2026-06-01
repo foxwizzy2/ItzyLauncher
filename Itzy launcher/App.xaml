@@ -1,0 +1,18 @@
+﻿<Application x:Class="ItzyLauncher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pages="clr-namespace:ItzyLauncher.Views.Pages"
+             xmlns:pageVm="clr-namespace:ItzyLauncher.ViewModels.Pages">
+
+    <Application.Resources>
+
+        <DataTemplate DataType="{x:Type pageVm:HomePageViewModel}">
+            <pages:HomePageView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type pageVm:AccountPageViewModel}">
+            <pages:AccountPageView />
+        </DataTemplate>
+
+    </Application.Resources>
+</Application>
